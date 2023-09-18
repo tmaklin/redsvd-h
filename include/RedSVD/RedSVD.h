@@ -119,41 +119,9 @@ namespace RedSVD
 		
 		void compute(const MatrixType& A, const Index rank)
 		{
-			if(A.cols() == 0 || A.rows() == 0)
-				return;
-			
-			Index r = (rank < A.cols()) ? rank : A.cols();
-			
-			r = (r < A.rows()) ? r : A.rows();
-			
-			// Gaussian Random Matrix for A^T
-			DenseMatrix O(A.rows(), r);
-			sample_gaussian(O);
-			
-			// Compute Sample Matrix of A^T
-			DenseMatrix Y = A.transpose() * O;
-			
-			// Orthonormalize Y
-			gram_schmidt(Y);
-			
-			// Range(B) = Range(A^T)
-			DenseMatrix B = A * Y;
-			
-			// Gaussian Random Matrix
-			DenseMatrix P(B.cols(), r);
-			sample_gaussian(P);
-			
-			// Compute Sample Matrix of B
-			DenseMatrix Z = B * P;
-			
-			// Orthonormalize Z
-			gram_schmidt(Z);
-			
-			// Range(C) = Range(B)
-			DenseMatrix C = Z.transpose() * B; 
-			
-			Eigen::JacobiSVD<DenseMatrix> svdOfC(C, Eigen::ComputeThinU | Eigen::ComputeThinV);
-			
+		        DenseMatrix Z;
+		        DenseMatrix Y;
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &Y);
 			// C = USV^T
 			// A = Z * U * S * V^T * Y^T()
 			m_matrixU = Z * svdOfC.matrixU();
@@ -161,6 +129,34 @@ namespace RedSVD
 			m_matrixV = Y * svdOfC.matrixV();
 		}
 		
+	        void compute_V(const MatrixType& A, const Index rank)
+		{
+		        DenseMatrix Y;
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &DenseMatrix(), &Y);
+			// C = USV^T
+			// A = Z * U * S * V^T * Y^T()
+			m_vectorS = std::move(svdOfC.singularValues());
+			m_matrixV = std::move(Y * svdOfC.matrixV());
+		}
+
+	        void compute_U(const MatrixType& A, const Index rank)
+		{
+		        DenseMatrix Z;
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &DenseMatrix());
+			// C = USV^T
+			// A = Z * U * S * V^T * Y^T()
+			m_vectorS = std::move(svdOfC.singularValues());
+			m_matrixU = Z * svdOfC.matrixU();
+		}
+
+	        void compute_singularValues(const MatrixType& A, const Index rank)
+		{
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank);
+			// C = USV^T
+			// A = Z * U * S * V^T * Y^T()
+			m_vectorS = std::move(svdOfC.singularValues());
+		}
+
 		DenseMatrix matrixU() const
 		{
 			return m_matrixU;
@@ -180,6 +176,48 @@ namespace RedSVD
 		DenseMatrix m_matrixU;
 		ScalarVector m_vectorS;
 		DenseMatrix m_matrixV;
+
+	        Eigen::BDCSVD<DenseMatrix> compute_svd(const MatrixType& A, const Index rank, DenseMatrix *Z, DenseMatrix *Y)
+		{
+		        if(A.cols() == 0 || A.rows() == 0) {}
+			    // TODO throw error;
+
+			Index r = (rank < A.cols()) ? rank : A.cols();
+
+			r = (r < A.rows()) ? r : A.rows();
+
+			// Gaussian Random Matrix for A^T
+			DenseMatrix O(A.rows(), r);
+			sample_gaussian(O);
+
+			// Compute Sample Matrix of A^T
+			*Y = A.transpose() * O;
+
+			// Orthonormalize Y
+			gram_schmidt(*Y);
+
+			// Range(B) = Range(A^T)
+			DenseMatrix B = A * (*Y);
+
+			// Gaussian Random Matrix
+			DenseMatrix P(B.cols(), r);
+			sample_gaussian(P);
+
+			// Compute Sample Matrix of B
+			*Z = B * P;
+
+			// Orthonormalize Z
+			gram_schmidt(*Z);
+
+			// Range(C) = Range(B)
+			DenseMatrix C = Z->transpose() * B;
+
+			// C = USV^T
+			// A = Z * U * S * V^T * Y^T()
+			Eigen::BDCSVD<DenseMatrix> svdOfC(C, Eigen::ComputeThinU | Eigen::ComputeThinV);
+			return svdOfC;
+
+		}
 	};
 	
 	template<typename _MatrixType>
