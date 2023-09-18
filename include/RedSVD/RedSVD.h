@@ -122,8 +122,6 @@ namespace RedSVD
 		        DenseMatrix Z;
 		        DenseMatrix Y;
 		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &Y);
-			// C = USV^T
-			// A = Z * U * S * V^T * Y^T()
 			m_matrixU = std::move(Z * svdOfC.matrixU());
 			m_vectorS = std::move(svdOfC.singularValues());
 			m_matrixV = std::move(Y * svdOfC.matrixV());
@@ -131,10 +129,9 @@ namespace RedSVD
 		
 	        void compute_V(const MatrixType& A, const Index rank)
 		{
+		        DenseMatrix Z;
 		        DenseMatrix Y;
-		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &DenseMatrix(), &Y);
-			// C = USV^T
-			// A = Z * U * S * V^T * Y^T()
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &Y);
 			m_vectorS = std::move(svdOfC.singularValues());
 			m_matrixV = std::move(Y * svdOfC.matrixV());
 		}
@@ -142,9 +139,8 @@ namespace RedSVD
 	        void compute_U(const MatrixType& A, const Index rank)
 		{
 		        DenseMatrix Z;
-		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &DenseMatrix());
-			// C = USV^T
-			// A = Z * U * S * V^T * Y^T()
+			DenseMatrix Y;
+		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &Y);
 			m_vectorS = std::move(svdOfC.singularValues());
 			m_matrixU = std::move(Z * svdOfC.matrixU());
 		}
