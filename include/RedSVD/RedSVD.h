@@ -124,9 +124,9 @@ namespace RedSVD
 		        const Eigen::BDCSVD<DenseMatrix> &svdOfC = this->compute_svd(A, rank, &Z, &Y);
 			// C = USV^T
 			// A = Z * U * S * V^T * Y^T()
-			m_matrixU = Z * svdOfC.matrixU();
-			m_vectorS = svdOfC.singularValues();
-			m_matrixV = Y * svdOfC.matrixV();
+			m_matrixU = std::move(Z * svdOfC.matrixU());
+			m_vectorS = std::move(svdOfC.singularValues());
+			m_matrixV = std::move(Y * svdOfC.matrixV());
 		}
 		
 	        void compute_V(const MatrixType& A, const Index rank)
@@ -146,7 +146,7 @@ namespace RedSVD
 			// C = USV^T
 			// A = Z * U * S * V^T * Y^T()
 			m_vectorS = std::move(svdOfC.singularValues());
-			m_matrixU = Z * svdOfC.matrixU();
+			m_matrixU = std::move(Z * svdOfC.matrixU());
 		}
 
 	        void compute_singularValues(const MatrixType& A, const Index rank)
